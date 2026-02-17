@@ -2,11 +2,11 @@
 
 ### Task Log
 - Fetch Fannie Mae data and grab small samples from different time frames
-- Same w Small business loan data
 - Preprocessing
 
 
 #### Completed
+- Sampled small business loan data
 
 #### In Progress 
 

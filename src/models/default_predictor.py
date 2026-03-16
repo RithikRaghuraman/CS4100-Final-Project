@@ -38,11 +38,11 @@ class DefaultPredictorMLP(nn.Module):
 
 def main():
     project_root = Path(__file__).parent.parent.parent
-    data_path = project_root / "data" / "business_loans_2010_2025.csv"
+    data_path = project_root / "data" / "cleaned_business_loans_2010_2025.csv"
 
     # processed data for modelling?
-    raw_data = pd.read_csv(data_path)
-    data = raw_data.to_numpy()
+    data = pd.read_csv(data_path)
+    data = data.to_numpy()
 
 
 
@@ -51,9 +51,9 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LR)
 
-    # for epoch in range(EPOCHS):
-    #     model.train()
-    #     random.shuffle(data)
+    for epoch in range(EPOCHS):
+        model.train()
+        random.shuffle(data)
 
 
 

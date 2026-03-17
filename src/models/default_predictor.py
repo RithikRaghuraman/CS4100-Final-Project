@@ -42,7 +42,8 @@ def main():
 
     # processed data for modelling?
     data = pd.read_csv(data_path)
-    data = data.to_numpy()
+    data = data.drop(["asofdate", "program", "borrname"], axis=1)
+    numerical_data = data
 
 
 

@@ -42,9 +42,7 @@ def main():
 
     # processed data for modelling?
     data = pd.read_csv(data_path)
-    data = data.drop(["asofdate", "program", "borrname"], axis=1)
-    numerical_data = data
-
+    data = data.drop(["asofdate", "program", "borrname"], axis=1).to_numpy()
 
 
     model = DefaultPredictorMLP(data.shape[1], 2, HIDDEN_SIZES, DROPOUT)
@@ -55,6 +53,18 @@ def main():
     for epoch in range(EPOCHS):
         model.train()
         random.shuffle(data)
+        for i in range(0, len(data), 32):
+            batch = data[i:i+32]
+            print(batch[0])
+            inputs = torch.tensor(batch[:, :-1], dtype=torch.float32)
+            labels = torch.tensor(batch[:, -1], dtype=torch.long)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {loss.item():.4f}")
 
 
 

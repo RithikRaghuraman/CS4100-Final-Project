@@ -31,3 +31,4 @@ torchvision==0.24.1
 tqdm==4.67.1
 typing-extensions==4.15.0
 tzdata==2025.3
+scikit-learn==1.8.0

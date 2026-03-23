@@ -3,7 +3,9 @@ import torch.nn as nn
 from torch import optim
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import random
+from sklearn.model_selection import train_test_split
 
 # Hyper params
 HIDDEN_SIZES = [128, 64, 32]
@@ -42,22 +44,32 @@ def main():
 
     # processed data for modelling?
     data = pd.read_csv(data_path)
-    data = data.drop(["asofdate", "program", "borrname"], axis=1).to_numpy()
+    labels = data["loanstatus"].to_numpy()
+    classes, labels = np.unique(labels, return_inverse=True)
+    labels = labels.astype(np.int64)
+    data = data.drop(["asofdate", "program", "borrname", "loanstatus", "firstdisbursementdate"], 
+                     axis=1).to_numpy(dtype=np.float32)
 
+    # Split the data into training and testing sets
+    train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
 
-    model = DefaultPredictorMLP(data.shape[1], 2, HIDDEN_SIZES, DROPOUT)
+    model = DefaultPredictorMLP(train_data.shape[1], 2, HIDDEN_SIZES, DROPOUT)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LR)
 
     for epoch in range(EPOCHS):
         model.train()
-        random.shuffle(data)
-        for i in range(0, len(data), 32):
-            batch = data[i:i+32]
-            print(batch[0])
-            inputs = torch.tensor(batch[:, :-1], dtype=torch.float32)
-            labels = torch.tensor(batch[:, -1], dtype=torch.long)
+        idx = np.arange(len(train_data))
+        random.shuffle(idx)
+        train_data = train_data[idx]
+        train_labels = train_labels[idx]
+        for i in range(0, len(train_data), 32):
+            batch_data = train_data[i:i+32]
+            batch_labels = train_labels[i:i+32]
+            print(batch_data[0], batch_labels)
+            inputs = torch.tensor(batch_data, dtype=torch.float32)
+            labels = torch.tensor(batch_labels, dtype=torch.long)
 
             optimizer.zero_grad()
             outputs = model(inputs)

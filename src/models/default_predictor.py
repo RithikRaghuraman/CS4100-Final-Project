@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 # Hyper params
 HIDDEN_SIZES = [128, 64, 32]
@@ -53,7 +54,7 @@ def main():
     # Split the data into training and testing sets
     train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
 
-    model = DefaultPredictorMLP(train_data.shape[1], 2, HIDDEN_SIZES, DROPOUT)
+    model = DefaultPredictorMLP(train_data.shape[1], len(classes), HIDDEN_SIZES, DROPOUT)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LR)
@@ -67,7 +68,7 @@ def main():
         for i in range(0, len(train_data), 32):
             batch_data = train_data[i:i+32]
             batch_labels = train_labels[i:i+32]
-            print(batch_data[0], batch_labels)
+            # print(batch_data[0], batch_labels)
             inputs = torch.tensor(batch_data, dtype=torch.float32)
             labels = torch.tensor(batch_labels, dtype=torch.long)
 
@@ -76,9 +77,21 @@ def main():
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {loss.item():.4f}")
+        print(f"Epoch: {epoch+1}/{EPOCHS}, Loss: {loss.item():.4f}")
 
+    model.eval()
+    with torch.no_grad():
+        test_inputs = torch.tensor(test_data, dtype=torch.float32)
+        logits = model(test_inputs)
+        preds = torch.argmax(logits, dim=1).numpy()
 
+    accuracy = accuracy_score(test_labels, preds)
+    precision = precision_score(test_labels, preds, average="weighted", zero_division=0)
+    recall = recall_score(test_labels, preds, average="weighted", zero_division=0)
+
+    print(f"Test Accuracy:  {accuracy:.4f}")
+    print(f"Test Precision: {precision:.4f}")
+    print(f"Test Recall:    {recall:.4f}")
 
 
 if __name__ == "__main__":

@@ -14,3 +14,4 @@
 - Create RL env
 - Define reward function
 - Define observation state and data sampling for RL model
+- Create home loan default predictor 

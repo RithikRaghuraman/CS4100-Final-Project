@@ -7,11 +7,11 @@
 
 #### In Progress 
 - Feature selection and modelling for default prediction
+- Outline RL env
+- Outline reward function
+- Outline observation state and data sampling for RL model
 
 #### Coming Up
 - Sample home loan data
 - Clean home loan data
-- Create RL env
-- Define reward function
-- Define observation state and data sampling for RL model
 - Create home loan default predictor 

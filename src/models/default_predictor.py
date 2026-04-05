@@ -9,10 +9,10 @@ import random
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, confusion_matrix
 
 # Hyper params
-HIDDEN_SIZES = [128, 64, 32]
+HIDDEN_SIZES = [128, 128, 64, 32]
 LR = 0.0001
 EPOCHS = 50
-DROPOUT = 0.3
+DROPOUT = 0.2
 BATCH_SIZE = 32
 
 
@@ -79,7 +79,7 @@ def main():
     # Oversampling done because some batches would be passed through with no default examples
     # Also pass a corresponding positive weight to the loss function to compensate for the 
     # over sampling and still existing class imbalance
-    OVERSAMPLE_RATIO = 2
+    OVERSAMPLE_RATIO = 5
     n_oversample = n_neg // OVERSAMPLE_RATIO
     effective_pos_weight = n_neg / n_oversample 
     print(f"Class balance — PIF: {n_neg}, CHGOFF: {n_pos}")

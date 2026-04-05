@@ -1,13 +1,15 @@
 """
 Script to sample business loan data from the 2010-2025 time period.
-Samples an equal number of loans per fiscal year so the resulting CSV is under 10 MB.
+Samples as many defaulted loans as possible per fiscal year with the rest 
+filled with fully paid loans. The resulting CSV is kept under 10MB for 
+quicker development. 
 """
 
 import pandas as pd
 from pathlib import Path
 
 
-TARGET_BYTES = 10 * 1024 * 1024  # 10 MB
+TARGET_BYTES = 10 * 1024 * 1024
 OUTPUT_NAME = "business_loans_2010_2025.csv"
 
 
@@ -18,27 +20,26 @@ def main():
 
     loans = pd.read_csv(input_path, low_memory=False)
 
-    total_rows = len(loans)
     file_size = input_path.stat().st_size
-    bytes_per_row = file_size / total_rows
-    num_years = loans["approvalfiscalyear"].nunique()
+    bytes_per_row = file_size / len(loans)
 
-    # Max rows that fit in 10 MB, divided equally across years
+    # Filter to only PIF and CHGOFF loans
+    loans = loans[loans["loanstatus"].isin(["PIF", "CHGOFF"])]
     max_total_rows = int(TARGET_BYTES / bytes_per_row)
-    n_per_year = max_total_rows // num_years
 
-    groups = []
-    for _, group in loans.groupby("approvalfiscalyear"):
-        print(group["approvalfiscalyear"], len(group))
-        n = min(n_per_year, len(group))
-        groups.append(group.sample(n=n, random_state=10))
+    chgoff = loans[loans["loanstatus"] == "CHGOFF"]
+    pif = loans[loans["loanstatus"] == "PIF"]
 
-    sampled = pd.concat(groups).reset_index(drop=True)
+    n_pif = max(0, max_total_rows - len(chgoff))
+    n_pif = min(n_pif, len(pif))
+
+    sampled = pd.concat([chgoff, pif.sample(n=n_pif, random_state=10)]).reset_index(drop=True)
 
     sampled.to_csv(output_path, index=False)
 
     actual_mb = output_path.stat().st_size / 1024 / 1024
-    print(f"Saved {len(sampled):,} rows → {output_path.name}  ({actual_mb:.2f} MB)")
+    print(f"CHGOFF: {len(chgoff):,}  PIF sampled: {n_pif:,}  Total: {len(sampled):,}")
+    print(f"Saved → {output_path.name}  ({actual_mb:.2f} MB)")
 
 
 if __name__ == "__main__":

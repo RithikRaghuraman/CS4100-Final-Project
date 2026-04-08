@@ -138,6 +138,11 @@ def main():
     # Reload best model recorded
     model.load_state_dict(best_weights)
 
+    models_dir = Path(__file__).parent.parent / "models"
+    models_dir.mkdir(exist_ok=True)
+    torch.save(model.state_dict(), models_dir / "default_predictor.pt")
+    print(f"Model saved to {models_dir / 'default_predictor.pt'}")
+
     model.eval()
     with torch.no_grad():
         val_probs  = model.predict_proba(torch.tensor(X_val,  dtype=torch.float32)).numpy()

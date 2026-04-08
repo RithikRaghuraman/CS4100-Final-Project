@@ -2,12 +2,14 @@ import pandas as pd
 import numpy as np
 import torch
 import torch.nn as nn
+import os
+from pathlib import Path
 from sklearn.model_selection import train_test_split 
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-data = pd.read_parquet('subset.parquet')
+data = pd.read_parquet('data/subset.parquet')
 
 X = data[[
     'Original Interest Rate', 
@@ -84,6 +86,10 @@ for epoch in range(epochs):
 
     print(f'Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}')
 
+models_dir = Path(__file__).parent.parent / "models"
+models_dir.mkdir(exist_ok=True)
+torch.save(model.state_dict(), models_dir / "homeloan_default_predictor.pt")
+print(f"Model saved to {models_dir / 'homeloan_default_predictor.pt'}")
 
 model.eval()
 all_true = []

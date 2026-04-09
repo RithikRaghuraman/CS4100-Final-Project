@@ -35,6 +35,16 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
+X_train_numpy = np.array(X_train, dtype=np.float32)
+X_test_numpy = np.array(X_test, dtype=np.float32)
+y_train_numpy = np.array(y_train, dtype=np.float32)
+y_test_numpy = np.array(y_test, dtype=np.float32)
+train_numpy = np.hstack((X_train_numpy, y_train_numpy.reshape(-1, 1)))
+test_numpy = np.hstack((X_test_numpy, y_test_numpy.reshape(-1, 1)))
+np.savetxt("data/homeloan_train.csv", train_numpy, delimiter=',')
+np.savetxt("data/homeloan_test.csv", test_numpy, delimiter=',')
+
+
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
 X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 

@@ -1,7 +1,17 @@
+import numpy as np
 """
 Load packages for RL Model
 """
 
+def sample_loans(sb_data, hl_data, n_samples=1000):
+    sb_samples = sb_data[np.random.choice(sb_data.shape[0], n_samples, replace=False)]
+    hl_samples = hl_data[np.random.choice(hl_data.shape[0], n_samples, replace=False)]
+    sb_feat = sb_samples[:, :-1]
+    hl_feat = hl_samples[:, :-1]
+    sb_labels = sb_samples[:, -1]
+    hl_labels = hl_samples[:, -1]
+
+    return sb_feat, hl_feat, sb_labels, hl_labels
 
 """
 PREREQUISITES
@@ -93,3 +103,12 @@ FOR EPISODE IN RANGE(NUM_EPISODES):
 
 
 """
+def main():
+    sb_data = np.genfromtxt("sb_data.csv", delimiter=",")
+    hl_data = np.genfromtxt("hl_data.csv", delimiter=",")
+
+    sb_features, hl_features, sb_labels, hl_labels = sample_loans(sb_data, hl_data, n_samples=1000)
+
+
+if __name__ == "__main__":
+    main()

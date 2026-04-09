@@ -4,14 +4,14 @@
 #### Completed
 - Sampled small business loan data
 - Cleaned small business loan data
-
-#### In Progress 
 - Feature selection and modelling for default prediction
 - Outline RL env
 - Outline reward function
+
+#### In Progress 
 - Outline observation state and data sampling for RL model
+- Start training RL model
 
 #### Coming Up
-- Sample home loan data
-- Clean home loan data
-- Create home loan default predictor 
+- Model fine tuning
+- Evaluations

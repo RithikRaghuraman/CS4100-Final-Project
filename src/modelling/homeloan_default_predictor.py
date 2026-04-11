@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-data = pd.read_parquet('data/subset.parquet')
+data = pd.read_parquet('subset.parquet')
 
 X = data[[
     'Original Interest Rate', 

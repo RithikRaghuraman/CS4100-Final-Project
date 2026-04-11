@@ -116,6 +116,7 @@ with torch.no_grad():
 for t in [0.5, 0.4, 0.3, 0.2]:
     preds = (np.array(all_probs) >= t).astype(int)
 
+    print(f'\nThreshold: {t}')
     print('Accuracy:', accuracy_score(all_true, preds))
     print('Precision:', precision_score(all_true, preds, zero_division=0))
     print('Recall:', recall_score(all_true, preds, zero_division=0))

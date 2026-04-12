@@ -29,9 +29,12 @@ class LoanClassifier(nn.Module):
         with torch.no_grad():
             return torch.sigmoid(self.forward(x))
 
-
-def main():
-    data = pd.read_parquet('subset.parquet')
+def load_transform_data():
+    """
+    Performs all loading of data and transformations to get it ready for training. 
+    Returns train and test dataloaders as well as the input dim
+    """
+    data = pd.read_parquet('data/subset.parquet')
 
     X = data[[
         'Original Interest Rate',
@@ -54,6 +57,8 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=0.25, stratify=y)
 
     scaler = StandardScaler()
+    X_train_raw = X_train[['Original Interest Rate', 'Original UPB', 'Original Loan Term']].values.astype(np.float32)
+    X_test_raw = X_test[['Original Interest Rate', 'Original UPB', 'Original Loan Term']].values.astype(np.float32)
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
@@ -65,6 +70,10 @@ def main():
     test_numpy = np.hstack((X_test_numpy, y_test_numpy.reshape(-1, 1)))
     np.savetxt("data/homeloan_train.csv", train_numpy, delimiter=',')
     np.savetxt("data/homeloan_test.csv", test_numpy, delimiter=',')
+
+    # Save raw dollar amounts for test set for evaluation later
+    raw_test = np.hstack((X_test_raw, y_test_numpy.reshape(-1, 1)))
+    np.savetxt("data/homeloan_test_raw.csv", raw_test, delimiter=',')
 
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
@@ -78,56 +87,62 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-    model = LoanClassifier(input_dim=X_train_tensor.shape[1])
+    return train_loader, test_loader, X_train_tensor.shape[1]
 
-    criterion = nn.BCEWithLogitsLoss()
-    optimzer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    epochs = 10
+def main():
+    train_loader, test_loader, input_dim = load_transform_data()
 
-    for epoch in range(epochs):
-        model.train()
-        total_loss = 0
+    # model = LoanClassifier(input_dim = input_dim)
 
-        for X_batch, y_batch in train_loader:
-            optimzer.zero_grad()
-            logits = model(X_batch)
-            loss = criterion(logits, y_batch)
-            loss.backward()
-            optimzer.step()
+    # criterion = nn.BCEWithLogitsLoss()
+    # optimzer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-            total_loss += loss.item()
+    # epochs = 10
 
-        avg_loss = total_loss/len(train_loader)
-        print(f'Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}')
+    # for epoch in range(epochs):
+    #     model.train()
+    #     total_loss = 0
 
-    models_dir = Path(__file__).parent.parent / "models"
-    models_dir.mkdir(exist_ok=True)
-    torch.save(model.state_dict(), models_dir / "homeloan_default_predictor.pt")
-    print(f"Model saved to {models_dir / 'homeloan_default_predictor.pt'}")
+    #     for X_batch, y_batch in train_loader:
+    #         optimzer.zero_grad()
+    #         logits = model(X_batch)
+    #         loss = criterion(logits, y_batch)
+    #         loss.backward()
+    #         optimzer.step()
 
-    model.eval()
-    all_true = []
-    all_probs = []
+    #         total_loss += loss.item()
 
-    with torch.no_grad():
-        for X_batch, y_batch in test_loader:
-            logits = model(X_batch)
-            probs = torch.sigmoid(logits)
+    #     avg_loss = total_loss/len(train_loader)
+    #     print(f'Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}')
 
-            all_true.extend(y_batch.numpy().flatten())
-            all_probs.extend(probs.numpy().flatten())
+    # models_dir = Path(__file__).parent.parent / "models"
+    # models_dir.mkdir(exist_ok=True)
+    # torch.save(model.state_dict(), models_dir / "homeloan_default_predictor.pt")
+    # print(f"Model saved to {models_dir / 'homeloan_default_predictor.pt'}")
 
-    for t in [0.5, 0.4, 0.3, 0.2]:
-        preds = (np.array(all_probs) >= t).astype(int)
+    # model.eval()
+    # all_true = []
+    # all_probs = []
 
-        print(f'\nThreshold: {t}')
-        print('Accuracy:', accuracy_score(all_true, preds))
-        print('Precision:', precision_score(all_true, preds, zero_division=0))
-        print('Recall:', recall_score(all_true, preds, zero_division=0))
-        print('F1:', f1_score(all_true, preds, zero_division=0))
+    # with torch.no_grad():
+    #     for X_batch, y_batch in test_loader:
+    #         logits = model(X_batch)
+    #         probs = torch.sigmoid(logits)
 
-    print('ROC-AUC', roc_auc_score(all_true, all_probs))
+    #         all_true.extend(y_batch.numpy().flatten())
+    #         all_probs.extend(probs.numpy().flatten())
+
+    # for t in [0.5, 0.4, 0.3, 0.2]:
+    #     preds = (np.array(all_probs) >= t).astype(int)
+
+    #     print(f'\nThreshold: {t}')
+    #     print('Accuracy:', accuracy_score(all_true, preds))
+    #     print('Precision:', precision_score(all_true, preds, zero_division=0))
+    #     print('Recall:', recall_score(all_true, preds, zero_division=0))
+    #     print('F1:', f1_score(all_true, preds, zero_division=0))
+
+    # print('ROC-AUC', roc_auc_score(all_true, all_probs))
 
 
 if __name__ == "__main__":

@@ -163,6 +163,13 @@ if __name__ == "__main__":
 
     train_df, val_df, test_df = stratified_split(df)
 
+    data_dir = data_path.parent
+
+    # Save raw financial values BEFORE fit_transform mutates the dataframes in-place
+    train_df[['grossapproval', 'terminmonths']].to_csv(data_dir / "sb_train_raw.csv", index=False)
+    val_df[['grossapproval', 'terminmonths']].to_csv(data_dir / "sb_val_raw.csv", index=False)
+    test_df[['grossapproval', 'terminmonths']].to_csv(data_dir / "sb_test_raw.csv", index=False)
+
     transformer = SBTransformer()
     X_train, y_train = transformer.fit_transform(train_df)
     X_val,   y_val   = transformer.transform(val_df)
@@ -172,7 +179,6 @@ if __name__ == "__main__":
     val_data = np.hstack([X_val, y_val.reshape(-1, 1)])
     test_data = np.hstack([X_test, y_test.reshape(-1, 1)])
 
-    data_dir = data_path.parent
     np.savetxt(data_dir / "sb_train_data.csv", train_data, delimiter=",")
     np.savetxt(data_dir / "sb_val_data.csv", val_data, delimiter=",")
     np.savetxt(data_dir / "sb_test_data.csv", test_data, delimiter=",")

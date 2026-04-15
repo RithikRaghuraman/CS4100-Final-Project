@@ -1,17 +1,21 @@
 ## AI Credit Portfolio Manager
 
-### Task Log
-#### Completed
-- Sampled small business loan data
-- Cleaned small business loan data
-- Feature selection and modelling for default prediction
-- Outline RL env
-- Outline reward function
+### Project Overview
+This project explores how Reinforcment Learning can be used to optimize credit lending decisions and limit default risk. Given a stream of applicants, the model decides whether to accept or reject their loan while balancing different factors such as profit and risk.
 
-#### In Progress 
-- Outline observation state and data sampling for RL model
-- Start training RL model
+### Running The Project
+1. Clone the repository
+```
+bash git clone <repo_url>
+cd <repo_url>
+```
 
-#### Coming Up
-- Model fine tuning
-- Evaluations
+2. 
+
+
+
+### Collaborators
+- Jack Carroll
+- Jaden Hu
+- Elton Neman
+- Rithik Raghuraman

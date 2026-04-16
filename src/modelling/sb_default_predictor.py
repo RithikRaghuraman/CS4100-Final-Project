@@ -7,12 +7,14 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, confusion_matrix
+    
+SEED = 42
 
 # Hyper params
 HIDDEN_SIZES = [128, 128, 64, 32]
 LR = 0.0001
 EPOCHS = 50
-DROPOUT = 0.2
+DROPOUT = 0.4
 BATCH_SIZE = 32
 
 
@@ -64,11 +66,10 @@ def main():
     val_data   = np.genfromtxt(data_dir / "sb_val_data.csv",   delimiter=",")
     test_data  = np.genfromtxt(data_dir / "sb_test_data.csv",  delimiter=",")
 
-    X_train, y_train = train_data[:, :-1], train_data[:, -1]
-    X_val,   y_val   = val_data[:,   :-1], val_data[:,   -1]
-    X_test,  y_test  = test_data[:,  :-1], test_data[:,  -1]
+    X_train, y_train = train_data[:,:-1], train_data[:,-1]
+    X_val, y_val = val_data[:,:-1], val_data[:,-1]
+    X_test, y_test = test_data[:,:-1], test_data[:,-1]
 
-    SEED = 42
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -79,7 +80,7 @@ def main():
     # Oversampling done because some batches would be passed through with no default examples
     # Also pass a corresponding positive weight to the loss function to compensate for the 
     # over sampling and still existing class imbalance
-    OVERSAMPLE_RATIO = 5
+    OVERSAMPLE_RATIO = 2
     n_oversample = n_neg // OVERSAMPLE_RATIO
     effective_pos_weight = n_neg / n_oversample 
     print(f"Class balance — PIF: {n_neg}, CHGOFF: {n_pos}")

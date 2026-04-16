@@ -28,6 +28,7 @@ N_LOANS = 1000
 N_TRIALS = 100
 HL_CAP = 100000
 CAPITAL_LIMIT = 50000000
+SB_POOL_FRAC = 0.5
 SEED = 0
 
 COLORS = {"DQN": "#2196F3", "Greedy": "#C50753", "Random": "#FFED22"}
@@ -69,14 +70,17 @@ def build_loan_pool(
     sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw,
     sb_model, hl_model,
     n_loans: int = N_LOANS,
+    sb_frac: float = SB_POOL_FRAC,
 ):
     """
-    Sample equal amount of home and business loans
+    Sample a pool of loans with tunable SB/HL composition.
+    sb_frac controls what fraction of the pool is drawn from SB loans.
     """
     pool = []
-    n_each = n_loans // 2
+    n_sb = int(round(n_loans * sb_frac))
+    n_hl = n_loans - n_sb
 
-    sb_idx = np.random.choice(len(sb_feats), size=n_each, replace=False)
+    sb_idx = np.random.choice(len(sb_feats), size=n_sb, replace=False)
     for i in sb_idx:
         features = sb_feats[i]
         x = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
@@ -92,7 +96,7 @@ def build_loan_pool(
         })
 
 
-    hl_idx = np.random.choice(len(hl_feats), size=n_each, replace=False)
+    hl_idx = np.random.choice(len(hl_feats), size=n_hl, replace=False)
     for i in hl_idx:
         features = hl_feats[i]
         x = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
@@ -113,7 +117,7 @@ def build_loan_pool(
 
 
 def get_loan_amount(loan: dict) -> float:
-    """ Helprer to get dollar amt of loan"""
+    """ Helper to get dollar amt of loan"""
     return loan["gross_usd"] if loan["loan_type"] == 0 else loan["upb_usd"]
 
 def realized_profit(loan: dict, action: int) -> float:
@@ -129,6 +133,7 @@ def realized_profit(loan: dict, action: int) -> float:
     if loan["loan_type"] == 0:
         gross = loan["gross_usd"]
         term  = loan["term_months"]
+        # For SB, return interest based on constant rate, and loss based on dataset expectation
         if label == 0:
             return gross * SB_RATE * (term / 12)
         else:
@@ -137,16 +142,17 @@ def realized_profit(loan: dict, action: int) -> float:
         rate   = loan["rate_pct"] / 100.0 
         upb    = loan["upb_usd"]
         term   = loan["term_months"]
+        # for homes, return actual interest based on loan specific rate/term and full loss of unpaid balance
         if label == 0:
             return rate * upb * (term / 12)  # interest over loan life
         else:
-            return -upb * LGD
+            return -upb
 
 def run_dqn(pool: list, policy_net: DQNNetwork,
             capital: float = CAPITAL_LIMIT) -> tuple[list, list]:
     """
     Score every loan in the pool based on the DQN policy evaluation on that loan, then
-    rank the take the best loans based on that score within the pool
+    rank, then take the best loans based on that score within the pool
     """
     policy_net.eval()
 
@@ -156,8 +162,8 @@ def run_dqn(pool: list, policy_net: DQNNetwork,
         for loan in pool:
             s = loan["state"]
             feat_t = torch.tensor(s[:SB_FEATURE_DIM], dtype=torch.float32).unsqueeze(0)
-            pd_t   = torch.tensor([s[-2]],             dtype=torch.float32)
-            lt_t   = torch.tensor([int(s[-1])],        dtype=torch.long)
+            pd_t   = torch.tensor([s[-2]], dtype=torch.float32)
+            lt_t   = torch.tensor([int(s[-1])], dtype=torch.long)
             q_vals = policy_net(feat_t, pd_t, lt_t)
             advantages.append((q_vals[0, 1] - q_vals[0, 0]).item())
 
@@ -222,12 +228,12 @@ def run_trials(sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw,
     results = total_profit_per_trial
     approvals = percentage of loans approved
     default_rates = percent of loans apporved that defaulted
-    cum_t0 = array of profit over time
-    p_defaults_t0 = default probability of approved loans
+    cum_t0 = array of profit over time (first ex only)
+    p_defaults_t0 = default probability of approved loans (first ex only)
     """
-    results          = {s: [] for s in STRATEGIES}
-    approvals        = {s: [] for s in STRATEGIES}
-    default_rates    = {s: [] for s in STRATEGIES}
+    results = {s: [] for s in STRATEGIES}
+    approvals = {s: [] for s in STRATEGIES}
+    default_rates = {s: [] for s in STRATEGIES}
     capital_deployed = {s: [] for s in STRATEGIES}
     # loan-type breakdown: counts of approved SB and HL loans per trial
     sb_approved_counts = {s: [] for s in STRATEGIES}
@@ -235,7 +241,8 @@ def run_trials(sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw,
     # profit split by loan type per trial
     sb_profits = {s: [] for s in STRATEGIES}
     hl_profits = {s: [] for s in STRATEGIES}
-    cum_t0        = {}
+    # single iteration sumulative profit and prob defaults of approved loans
+    cum_t0 = {}
     p_defaults_t0 = {}
 
     runners = {
@@ -250,13 +257,16 @@ def run_trials(sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw,
         )
 
         for s in STRATEGIES:
+            # call function to run strategy on the pool of loans
             acts, profs = runners[s](pool)
 
             results[s].append(sum(profs))
 
+
             n_approved = sum(acts)
             approvals[s].append(n_approved / len(pool) * 100)
 
+            # collect data on the run
             approved_labels = [pool[i]["label"] for i, a in enumerate(acts) if a == 1]
             default_rates[s].append(
                 np.mean(approved_labels) * 100 if approved_labels else 0.0
@@ -284,8 +294,8 @@ def run_trials(sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw,
                 cum_t0[s] = np.cumsum(profs)
                 p_defaults_t0[s] = [pool[i]["p_default"] for i, a in enumerate(acts) if a == 1]
 
-        if (t + 1) % 5 == 0:
-            print(f"  Completed trial {t + 1}/{n_trials}")
+        if (t + 1) % 10 == 0:
+            print(f"  Completed trial {t + 1}")
 
     return (results, approvals, default_rates, capital_deployed,
             sb_approved_counts, hl_approved_counts, sb_profits, hl_profits,
@@ -310,7 +320,9 @@ def plot_results(results, approvals, default_rates, capital_deployed,
                  sb_approved_counts, hl_approved_counts, sb_profits, hl_profits,
                  cum_t0, p_defaults_t0, out_dir: Path):
     subtitle = (
-        f"{N_TRIALS} trials × {N_LOANS} loans, capital limit ${CAPITAL_LIMIT/1e6:.0f}M"
+        f"{N_TRIALS} trials × {N_LOANS} loans "
+        f"({int(round(SB_POOL_FRAC*100))}% SB / {int(round((1-SB_POOL_FRAC)*100))}% HL), "
+        f"capital limit ${CAPITAL_LIMIT/1e6:.0f}M"
     )
 
     # Mean total profit bar chart
@@ -327,7 +339,7 @@ def plot_results(results, approvals, default_rates, capital_deployed,
     y_range = max(abs(v) for v in means) or 1.0
     for bar, mean in zip(bars, means):
         va = "bottom" if mean >= 0 else "top"
-        offset = y_range * 0.02 * (1 if mean >= 0 else -1)
+        offset = y_range * 0.04 * (1 if mean >= 0 else -1)
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             mean + offset,
@@ -463,7 +475,12 @@ def main():
 
     sb_feats, sb_labels, sb_raw, hl_feats, hl_labels, hl_raw = load_test_data(project_root)
 
-    print(f"Running eval. {N_TRIALS} trials with {N_LOANS} loans each")
+    n_sb_per_pool = int(round(N_LOANS * SB_POOL_FRAC))
+    n_hl_per_pool = N_LOANS - n_sb_per_pool
+    print(
+        f"Running eval. {N_TRIALS} trials with {N_LOANS} loans each "
+        f"({n_sb_per_pool} SB / {n_hl_per_pool} HL)"
+    )
     (results, approvals, default_rates, capital_deployed,
      sb_approved_counts, hl_approved_counts, sb_profits, hl_profits,
      cum_t0, p_defaults_t0) = run_trials(

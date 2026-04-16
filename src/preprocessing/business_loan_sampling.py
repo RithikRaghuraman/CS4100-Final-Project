@@ -9,7 +9,7 @@ import pandas as pd
 from pathlib import Path
 
 
-TARGET_BYTES = 10 * 1024 * 1024
+TARGET_BYTES = 100 * 1024 * 1024
 OUTPUT_NAME = "business_loans_2010_2025.csv"
 
 

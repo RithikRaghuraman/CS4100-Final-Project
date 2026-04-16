@@ -18,11 +18,13 @@ from homeloan_default_predictor import LoanClassifier
 LGD = 0.75   # Percentage of loan amount lost on default
 SB_RATE = 0.065  # Average SB loan interest rate - https://www.crestmontcapital.com/blog/sba-loan-interest-rates-historical-trends-and-2025-updates
 SB_TERM = 84     # Assumed SB loan term in months (7 years)
+# need the two above constants because our data doesn't contain when a loan defaulted, so we estimate loss
+DEFAULT_PENALTY_SCALE = 0.1  # Added because our agent was incredibly risk averse when it came to SB loans
 
 
-SB_FEATURE_DIM = 94    # Number of features in SB loan data
+SB_FEATURE_DIM = 95    # Number of features in SB loan data
 HL_FEATURE_DIM = 11    # Number of features in HL loan data
-STATE_DIM = 96    # SB_FEATURE_DIM + p_default + loan_type flag
+STATE_DIM = 97    # SB_FEATURE_DIM + p_default + loan_type flag
 ENCODED_DIM = 32    # Output size of each loan type encoder, used to manage mismatch of features between loan types
 TRUNK_HIDDEN = 64    # Hidden layer size in shared trunk
 N_ACTIONS = 2     # just approve or reject loans
@@ -123,13 +125,13 @@ class LoanEnvironment(gym.Env):
             if loan_type == 0: # SB loan — rate and term use external constants
                 loan_proxy = features[0]
                 reward = (loan_proxy * SB_RATE * SB_TERM / 12) * p_repay \
-                         - loan_proxy * p_default * LGD
+                         - loan_proxy * p_default * LGD * DEFAULT_PENALTY_SCALE
             else: # HL loan — rate, amount, term are in features
                 rate_proxy = features[0]
                 loan_proxy = features[1]
                 term_proxy = features[2]
                 reward = (rate_proxy * term_proxy * loan_proxy) * p_repay \
-                         - loan_proxy * p_default * LGD
+                         - loan_proxy * p_default * LGD * DEFAULT_PENALTY_SCALE
 
         self.step_count += 1
         done = self.step_count >= MAX_STEPS

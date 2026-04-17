@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torch import optim
 from pathlib import Path
-import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, confusion_matrix
@@ -88,7 +87,7 @@ def main():
 
     chgoff_idx = np.where(y_train == 1)[0]
     pif_idx = np.where(y_train == 0)[0]
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(SEED)
 
     model = DefaultPredictorMLP(X_train.shape[1], HIDDEN_SIZES, DROPOUT)
     pos_weight = torch.tensor([effective_pos_weight], dtype=torch.float32)

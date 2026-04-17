@@ -1,8 +1,8 @@
 """
 Script to sample business loan data from the 2010-2025 time period.
 Samples as many defaulted loans as possible per fiscal year with the rest 
-filled with fully paid loans. The resulting CSV is kept under 10MB for 
-quicker development. 
+filled with fully paid loans. The resulting CSV can have its size controlled,
+which we used to speed up development
 """
 
 import pandas as pd

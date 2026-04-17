@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import gymnasium as gym
 from gymnasium import spaces
+import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
 from sb_default_predictor import DefaultPredictorMLP
@@ -301,7 +302,6 @@ def train(env, agent):
 
 
 def main():
-    import pandas as pd
     project_root = Path(__file__).parent.parent.parent
 
     sb_data = pd.read_csv(
